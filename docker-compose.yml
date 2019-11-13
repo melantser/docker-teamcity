@@ -1,0 +1,47 @@
+version: "3.7"
+
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: teamcity
+      POSTGRES_USER: teamcity
+      POSTGRES_PASSWORD: teamcity
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+
+  server:
+    image: jetbrains/teamcity-server
+    ports:
+      - "8112:8111"
+    depends_on:
+      - db
+    volumes:
+      - teamcity_server_datadir:/data/teamcity_server/datadir
+      - ./teamcity_server/logs:/opt/teamcity/logs
+
+  agent:
+    build: ./common-agent
+    environment:
+      SERVER_URL: http://server:8111
+      AGENT_NAME: common_agent
+      DOCKER_IN_DOCKER: start
+    privileged: true
+    volumes:
+      - static:/srv
+    depends_on:
+      - server
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "8777:80"
+    volumes:
+      - static:/var/www
+
+volumes:
+  postgres_data:
+  teamcity_server_datadir:
+  static:
